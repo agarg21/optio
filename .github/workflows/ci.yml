@@ -152,8 +152,13 @@ jobs:
       - run: pnpm --filter @optio/api test:e2e
 
   web-e2e:
-    name: Web E2E (Playwright)
+    name: Web E2E (Playwright, shard ${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
+    # Each shard starts its own stack (launch-stack.ts), so shards share nothing.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -165,11 +170,11 @@ jobs:
       - run: bash scripts/test-infra.sh start
       - name: Install Playwright Chromium and Firefox
         run: cd apps/web && npx playwright install --with-deps chromium firefox
-      - run: pnpm --filter @optio/web test:e2e
+      - run: pnpm --filter @optio/web test:e2e --shard=${{ matrix.shard }}/3
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: apps/web/playwright-report/
           retention-days: 7
 
